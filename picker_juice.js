@@ -143,8 +143,8 @@ function lockDaysWithRange(date1, date2, pickedDates) {
             year = date1.getFullYear();
 
         // Sprawdzenie, czy data znajduje się w zakresie od 23 grudnia 2023 do 2 stycznia 2024
-        const isAfterStart = new Date(year, month, day) >= new Date(2023, 11, 23); // 23 grudnia 2023
-        const isBeforeEnd = new Date(year, month, day) <= new Date(2024, 0, 2); // 2 stycznia 2024
+        const isAfterStart = new Date(year, month, day) >= new Date(2024, 11, 24); // 23 grudnia 2023
+        const isBeforeEnd = new Date(year, month, day) <= new Date(2025, 0, 1); // 2 stycznia 2024
 
         if (isAfterStart && isBeforeEnd) {
             return true;
