@@ -206,8 +206,8 @@ function lockDaysWithRange(date1, date2, pickedDates) {
             month = date1.getMonth(),
             year = date1.getFullYear();
 
-        const isAfterStart = new Date(year, month, day) >= new Date(2023, 11, 23);
-        const isBeforeEnd = new Date(year, month, day) <= new Date(2024, 0, 2);
+        const isAfterStart = new Date(year, month, day) >= new Date(2024, 11, 24);
+        const isBeforeEnd = new Date(year, month, day) <= new Date(2025, 0, 1);
 
         if (isAfterStart && isBeforeEnd) {
             return true;
