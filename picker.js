@@ -68,7 +68,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 picker.on("selected", (date1, date2) => {
                     calculateRangeInfo(date1, date2);
                 });
-            checkFormConditions();
         },
     });
 
@@ -93,7 +92,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 ////////////////////////////////////////////////////////////////////
 
-/*
 function resetCalendar(e) {
     setTimeout(function () {
         startRangeDate = null;
@@ -105,24 +103,6 @@ function resetCalendar(e) {
         window.picker.setOptions({ minDays: defaultDays, maxDays: defaultDays });
         updateWeekends(e);
         $('input[name="days"]').trigger("input");
-    }, 10);
-}
-*/
-
-function resetCalendar(e) {
-    setTimeout(function () {
-        startRangeDate = null;
-        endRangeDate = null;
-        window.picker.clearSelection();
-        document.getElementById("date").value = "";
-        document.getElementById("days").value = defaultDays;
-        document.querySelector('input[name="price"]').value = 0;
-        window.picker.setOptions({ minDays: defaultDays, maxDays: defaultDays });
-        updateWeekends(e);
-
-        $('input[name="days"]').trigger("input");
-
-        checkFormConditions();
     }, 10);
 }
 
@@ -166,7 +146,6 @@ function updateWeekends(e) {
 }
 
 ////////////////////////////////////////////////////////////////////
-/*
 function updateDays(e) {
     const days = parseInt(document.getElementById("days").value);
 
@@ -191,45 +170,14 @@ function updateDays(e) {
             });
         }
         updateWeekends(e);
-    }, 100);
-}
-    */
-
-function updateDays(e) {
-    const days = parseInt(document.getElementById("days").value);
-
-    setTimeout(function () {
-        const val = parseInt(e.target.value);
-
-        if (val > 0) {
-            window.picker.setOptions({
-                minDays: val,
-                maxDays: val,
-            });
-
-            if (startRangeDate) {
-                calculateRangeInfo(startRangeDate, startRangeDate.dateInstance.addDays(days - 1));
-            }
-            if (!startRangeDate) {
-                window.picker.clearSelection();
-            }
-        } else {
-            window.picker.setOptions({
-                minDays: defaultDays,
-                maxDays: defaultDays,
-            });
-        }
-
-        updateWeekends(e);
-        checkFormConditions();
     }, 100);
 }
 
 ////////////////////////////////////////////////////////////////////
 
 // Początkowa inicjalizacja - przycisk nieaktywny
-// document.querySelector(".o-form_button-submit").disabled = true;
-// document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę dni";
+document.querySelector(".o-form_button-submit").disabled = true;
+document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę dni";
 
 ////////////////////////////////////////////////////////////////////
 
@@ -290,7 +238,6 @@ function calculateRangeSelect(date1, date2) {
 
 ////////////////////////////////////////////////////////////////////
 
-/*
 function calculateRangeInfo(date1, date2) {
     if (skipRange) {
         return;
@@ -371,57 +318,4 @@ function calculateRangeInfo(date1, date2) {
         }
         document.getElementById("date").value = displayInfo;
     }
-}
-
-*/
-
-function calculateRangeInfo(date1, date2) {
-    if (skipRange) {
-        return;
-    }
-
-    let displayInfo = "";
-    let daysCount = 0;
-    const weekends = document.getElementById("weeknds").checked;
-    const days = parseInt(document.getElementById("days").value);
-    const date1_day = date1.getDate();
-    const date1_month = date1.getMonth();
-    const date1_year = date1.getFullYear();
-
-    if (!date2) {
-        date2 = new Date(date1_year, date1_month, date1_day).addDays(days - 1);
-    }
-
-    const date2_day = date2.getDate();
-    const date2_month = date2.getMonth();
-    const date2_year = date2.getFullYear();
-
-    let startLoopDate = new Date(date1_year, date1_month, date1_day);
-    let endLoopDate = new Date(date2_year, date2_month, date2_day);
-
-    for (let d = startLoopDate; d <= endLoopDate; d.setDate(d.getDate() + 1)) {
-        let currentDate = new Date(d);
-        const currentDate_dow = currentDate.getDay();
-
-        if (!weekends && (currentDate_dow === 0 || currentDate_dow === 6)) {
-            if (days > 0) {
-                endLoopDate = endLoopDate.addDays(1);
-            }
-            continue;
-        }
-        daysCount++;
-    }
-
-    calculateRangeSelect(date1, endLoopDate);
-
-    displayInfo = document.getElementById("date-info").value;
-    if (!displayInfo) {
-        document.getElementById("date").value = displayInfo;
-    } else {
-        displayInfo += ", days: " + daysCount;
-        displayInfo += weekends ? " (weekends)" : " (no weekends)";
-        document.getElementById("date").value = displayInfo;
-    }
-
-    checkFormConditions();
 }
