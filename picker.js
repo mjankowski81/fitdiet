@@ -227,8 +227,8 @@ function updateDays(e) {
 ////////////////////////////////////////////////////////////////////
 
 // Początkowa inicjalizacja - przycisk nieaktywny
-document.querySelector(".o-form_button-submit").disabled = true;
-document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę dni";
+// document.querySelector(".o-form_button-submit").disabled = true;
+// document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę dni";
 
 ////////////////////////////////////////////////////////////////////
 
