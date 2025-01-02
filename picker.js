@@ -68,6 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 picker.on("selected", (date1, date2) => {
                     calculateRangeInfo(date1, date2);
                 });
+            checkFormConditions();
         },
     });
 
