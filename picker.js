@@ -146,6 +146,7 @@ function updateWeekends(e) {
 }
 
 ////////////////////////////////////////////////////////////////////
+
 function updateDays(e) {
     const days = parseInt(document.getElementById("days").value);
 
