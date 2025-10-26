@@ -46,11 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
       other: "dni",
     },
     lockDaysFilter: (date1, date2, pickedDates) => {
-      if (defaultDays == 0) {
-        return true;
-      } else {
-        return lockDaysWithRange(date1, date2, pickedDates);
-      }
+      return lockDaysWithRange(date1, date2, pickedDates);
     },
     setup: (picker) => {
       document.getElementById("days").value = defaultDays;
@@ -108,35 +104,20 @@ function resetCalendar(e) {
 
 ////////////////////////////////////////////////////////////////////
 
+// POPRAWKA 2:
+// Całkowicie nowa wersja tej funkcji
 function updateWeekends(e) {
-  const weekends = document.getElementById("weeknds").checked;
   const days = parseInt(document.getElementById("days").value);
 
   setTimeout(function () {
-    if (document.querySelector("#weeknds").checked) {
-      window.picker.setOptions({
-        lockDaysFilter: (date1) => {
-          if (days == 0) {
-            return true;
-          } else {
-            const day = date1.getDate(),
-              month = date1.getMonth(),
-              year = date1.getFullYear();
-            return false;
-          }
-        },
-      });
-    } else {
-      window.picker.setOptions({
-        lockDaysFilter: (date1, date2, pickedDates) => {
-          if (days == 0) {
-            return true;
-          } else {
-            return lockDaysWithRange(date1, date2, pickedDates);
-          }
-        },
-      });
-    }
+    // Usuwamy całą starą logikę "if (days == 0)".
+    // Zamiast tego, po prostu mówimy kalendarzowi,
+    // aby przerysował się używając funkcji lockDaysWithRange.
+    window.picker.setOptions({
+      lockDaysFilter: lockDaysWithRange,
+    });
+
+    // Przeliczamy zakres, jeśli jest już wybrany
     if (days > 0 && startRangeDate) {
       calculateRangeInfo(startRangeDate, startRangeDate.dateInstance.addDays(days - 1));
     } else if (startRangeDate && endRangeDate) {
@@ -182,18 +163,19 @@ document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę d
 
 ////////////////////////////////////////////////////////////////////
 
+// POPRAWKA 3:
+// Poprawiona funkcja główna (ta z poprzedniej odpowiedzi)
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- Definicja zablokowanego zakresu ---
   const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025
   const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026
   // ------------------------------------------
 
-  // POPRAWKA: Pobieramy aktualny stan checkboxa "weeknds"
-  // Robimy to wewnątrz funkcji, aby zawsze miała aktualną wartość.
+  // Pobieramy aktualny stan checkboxa "weeknds"
   const includeWeekends = document.getElementById("weeknds").checked;
 
   if (!date2) {
-    // Ten blok sprawdza pojedyncze dni (np. przy najechaniu myszką)
+    // --- Sprawdzanie pojedynczych dni ---
     const d = date1.getDay(); // 0 = Niedziela, 6 = Sobota
     const day = date1.getDate();
     const month = date1.getMonth();
@@ -201,27 +183,26 @@ function lockDaysWithRange(date1, date2, pickedDates) {
 
     const currentDate = new Date(year, month, day, 0, 0, 0, 0);
 
-    // 1. Sprawdzenie, czy data jest w zablokowanym zakresie świątecznym
+    // 1. Sprawdzenie zakresu świątecznego
     const inRange = currentDate >= rangeStart && currentDate <= rangeEnd;
     if (inRange) {
-      return true; // Zablokuj ten dzień
+      return true; // Zablokuj
     }
 
-    // 2. ZAWSZE blokuj niedzielę (d === 0)
+    // 2. ZAWSZE blokuj niedzielę
     if (d === 0) {
       return true;
     }
 
-    // 3. Blokuj sobotę (d === 6) TYLKO jeśli checkbox "weeknds" jest ODZNACZONY
+    // 3. Blokuj sobotę TYLKO jeśli checkbox jest ODZNACZONY
     if (!includeWeekends && d === 6) {
       return true;
     }
 
-    // Jeśli żaden warunek nie jest spełniony, dzień jest odblokowany
-    return false;
+    return false; // Dzień jest odblokowany
   }
 
-  // Ten blok sprawdza cały wybrany zakres (po kliknięciu drugiej daty)
+  // --- Sprawdzanie całego wybranego zakresu ---
   let tempDate = date1.clone();
 
   while (tempDate.toJSDate() <= date2.toJSDate()) {
@@ -233,8 +214,7 @@ function lockDaysWithRange(date1, date2, pickedDates) {
     const currentDate = new Date(year, month, day, 0, 0, 0, 0);
 
     // 1. Sprawdzenie zakresu świątecznego
-    const inRange = currentDate >= rangeStart && currentDate <= rangeEnd;
-    if (inRange) {
+    if (currentDate >= rangeStart && currentDate <= rangeEnd) {
       return true; // Zakres zawiera zablokowany dzień
     }
 
@@ -251,8 +231,7 @@ function lockDaysWithRange(date1, date2, pickedDates) {
     tempDate.add(1, "day");
   }
 
-  // Jeśli pętla przeszła pomyślnie, zakres jest wolny
-  return false;
+  return false; // Cały zakres jest OK
 }
 
 ////////////////////////////////////////////////////////////////////
