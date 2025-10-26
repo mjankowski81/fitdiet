@@ -161,80 +161,73 @@ document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę d
 
 ////////////////////////////////////////////////////////////////////
 
+/**
+ * Główna funkcja filtrująca dni w kalendarzu.
+ * Ta funkcja jest teraz jedynym źródłem prawdy o blokadach.
+ */
 function lockDaysWithRange(date1, date2, pickedDates) {
-  // --- KROK 1: Sprawdzenie suwaka dni ---
-  // Pobieramy aktualną wartość z suwaka za każdym razem, gdy funkcja jest wywołana
+  // --- 1. Reguła blokowania na 0 dni ---
+  // (Zaczerpnięte z oryginalnej logiki `if (days === 0)`)
   const days = parseInt(document.getElementById("days").value);
-
-  // Jeśli wybrane jest 0 dni, blokujemy WSZYSTKIE daty.
   if (days === 0) {
-    return true;
+    return true; // Zablokuj wszystko, jeśli suwak jest na 0
   }
 
-  // --- KROK 2: Definicje dla dni > 0 ---
+  // --- 2. Definicje reguł ---
 
-  // Definicja zablokowanego zakresu świątecznego
-  const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025 (miesiąc 11)
-  const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026 (miesiąc 0)
+  // Zakres świąteczny (ZAWSZE blokowany)
+  const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025
+  const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026
 
-  // Sprawdzenie, czy checkbox "Weekendy" jest zaznaczony
+  // Stan checkboxa (decyduje o weekendach)
   const includeWeekends = document.getElementById("weeknds").checked;
 
-  // --- KROK 3: Sprawdzanie pojedynczych dni (np. przy najechaniu myszką) ---
-  if (!date2) {
-    // Używamy .dateInstance dla pewności, że to natywna data JS
-    const jsDate = date1.dateInstance;
+  // --- 3. Wewnętrzna funkcja sprawdzająca pojedynczą datę ---
+  // (To upraszcza sprawdzanie zakresu i pojedynczego dnia)
+
+  function isDayLocked(date) {
+    // Musimy użyć .dateInstance, aby mieć pewność, że to obiekt Daty JS
+    const jsDate = date.dateInstance;
     const d = jsDate.getDay(); // 0 = Niedziela, 6 = Sobota
 
     // Normalizujemy datę do północy dla bezpiecznego porównania
     const currentDate = new Date(jsDate.getFullYear(), jsDate.getMonth(), jsDate.getDate(), 0, 0, 0, 0);
 
-    // 1. Sprawdzenie zakresu świątecznego
+    // Reguła A: Sprawdź zakres świąteczny (zawsze aktywna)
     if (currentDate >= rangeStart && currentDate <= rangeEnd) {
-      return true; // Zablokuj
-    }
-
-    // 2. ZAWSZE blokuj niedzielę
-    if (d === 0) {
       return true;
     }
 
-    // 3. Blokuj sobotę (tylko jeśli weekendy są WYŁĄCZONE)
-    if (!includeWeekends && d === 6) {
+    // Reguła B: Sprawdź weekendy (tylko jeśli checkbox jest ODZNACZONY)
+    // (To jest Twoja oryginalna logika: `return [6, 0].includes(d)`)
+    if (!includeWeekends && [6, 0].includes(d)) {
       return true;
     }
 
-    return false; // Dzień jest odblokowany
+    // Jeśli żaden warunek nie jest spełniony, dzień jest odblokowany
+    return false;
+  }
+  // --- Koniec funkcji wewnętrznej ---
+
+  // --- 4. Sprawdzenie logiki dla kalendarza ---
+
+  if (!date2) {
+    // Użytkownik tylko najechał myszką na jeden dzień
+    return isDayLocked(date1);
   }
 
-  // --- KROK 4: Sprawdzanie całego wybranego zakresu (po kliknięciu) ---
+  // Użytkownik wybrał zakres (od date1 do date2)
+  // Musimy sprawdzić każdy dzień w tym zakresie
   let tempDate = date1.clone();
-
   while (tempDate.toJSDate() <= date2.toJSDate()) {
-    const jsDateLoop = tempDate.dateInstance;
-    const d = jsDateLoop.getDay();
-
-    const currentDate = new Date(jsDateLoop.getFullYear(), jsDateLoop.getMonth(), jsDateLoop.getDate(), 0, 0, 0, 0);
-
-    // 1. Sprawdzenie zakresu świątecznego
-    if (currentDate >= rangeStart && currentDate <= rangeEnd) {
-      return true; // Zakres zawiera dzień świąteczny
+    if (isDayLocked(tempDate)) {
+      return true; // Znaleziono zablokowany dzień w zakresie
     }
-
-    // 2. Sprawdzenie niedzieli
-    if (d === 0) {
-      return true; // Zakres zawiera niedzielę
-    }
-
-    // 3. Sprawdzenie soboty (jeśli weekendy są WYŁĄCZONE)
-    if (!includeWeekends && d === 6) {
-      return true; // Zakres zawiera sobotę
-    }
-
     tempDate.add(1, "day");
   }
 
-  return false; // Cały zakres jest OK
+  // Jeśli pętla przeszła, cały zakres jest dostępny
+  return false;
 }
 
 ////////////////////////////////////////////////////////////////////
