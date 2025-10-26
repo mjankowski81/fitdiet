@@ -161,68 +161,62 @@ document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę d
 
 ////////////////////////////////////////////////////////////////////
 
+/**
+ * Główna funkcja filtrująca dni w kalendarzu.
+ * (Wersja dla pliku Z CHECKBOXEM - poprawiona)
+ */
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- 1. Reguła blokowania na 0 dni ---
-  // (Zaczerpnięte z oryginalnej logiki `if (days === 0)`)
   const days = parseInt(document.getElementById("days").value);
   if (days === 0) {
-    return true; // Zablokuj wszystko, jeśli suwak jest na 0
+    return true;
   }
 
   // --- 2. Definicje reguł ---
-
-  // Zakres świąteczny (ZAWSZE blokowany)
-  const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025
-  const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026
-
-  // Stan checkboxa (decyduje o weekendach)
+  const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0);
+  const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0);
   const includeWeekends = document.getElementById("weeknds").checked;
 
   // --- 3. Wewnętrzna funkcja sprawdzająca pojedynczą datę ---
-  // (To upraszcza sprawdzanie zakresu i pojedynczego dnia)
-
   function isDayLocked(date) {
-    // Musimy użyć .dateInstance, aby mieć pewność, że to obiekt Daty JS
-    const jsDate = date.dateInstance;
-    const d = jsDate.getDay(); // 0 = Niedziela, 6 = Sobota
+    // --- POPRAWKA BŁĘDU ---
+    // Sprawdzamy, czy 'date' to obiekt Litepickera (ma .dateInstance) czy natywna Data
+    const jsDate = date.dateInstance ? date.dateInstance : date;
+    // --- KONIEC POPRAWKI ---
 
-    // Normalizujemy datę do północy dla bezpiecznego porównania
+    const d = jsDate.getDay();
     const currentDate = new Date(jsDate.getFullYear(), jsDate.getMonth(), jsDate.getDate(), 0, 0, 0, 0);
 
-    // Reguła A: Sprawdź zakres świąteczny (zawsze aktywna)
+    // Reguła A: Sprawdź zakres świąteczny
     if (currentDate >= rangeStart && currentDate <= rangeEnd) {
       return true;
     }
 
-    // Reguła B: Sprawdź weekendy (tylko jeśli checkbox jest ODZNACZONY)
-    // (To jest Twoja oryginalna logika: `return [6, 0].includes(d)`)
+    // Reguła B: Sprawdź weekendy (zależne od checkboxa)
     if (!includeWeekends && [6, 0].includes(d)) {
       return true;
     }
 
-    // Jeśli żaden warunek nie jest spełniony, dzień jest odblokowany
     return false;
   }
   // --- Koniec funkcji wewnętrznej ---
 
   // --- 4. Sprawdzenie logiki dla kalendarza ---
-
   if (!date2) {
-    // Użytkownik tylko najechał myszką na jeden dzień
+    // 'date1' jest tutaj NATIVE DATE
     return isDayLocked(date1);
   }
 
-  // Użytkownik wybrał zakres (od date1 do date2)
-  // Musimy sprawdzić każdy dzień w tym zakresie
+  // 'date1' i 'date2' są tutaj LITEPICKER OBJECTS
   let tempDate = date1.clone();
   while (tempDate.toJSDate() <= date2.toJSDate()) {
+    // 'tempDate' jest LITEPICKER OBJECT
     if (isDayLocked(tempDate)) {
-      return true; // Znaleziono zablokowany dzień w zakresie
+      return true;
     }
     tempDate.add(1, "day");
   }
 
-  // Jeśli pętla przeszła, cały zakres jest dostępny
   return false;
 }
 
