@@ -161,10 +161,6 @@ document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę d
 
 ////////////////////////////////////////////////////////////////////
 
-/**
- * Główna funkcja filtrująca dni w kalendarzu.
- * Ta funkcja jest teraz jedynym źródłem prawdy o blokadach.
- */
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- 1. Reguła blokowania na 0 dni ---
   // (Zaczerpnięte z oryginalnej logiki `if (days === 0)`)
