@@ -184,63 +184,70 @@ document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę d
 
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- Definicja zablokowanego zakresu ---
-  // Ustawiamy godziny na 0, aby uniknąć problemów ze strefami czasowymi
-
-  // Zakres: 24.12.2025 - 04.01.2026
   const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025
   const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026
   // ------------------------------------------
 
+  // POPRAWKA: Pobieramy aktualny stan checkboxa "weeknds"
+  // Robimy to wewnątrz funkcji, aby zawsze miała aktualną wartość.
+  const includeWeekends = document.getElementById("weeknds").checked;
+
   if (!date2) {
     // Ten blok sprawdza pojedyncze dni (np. przy najechaniu myszką)
-    const d = date1.getDay(),
-      day = date1.getDate(),
-      month = date1.getMonth(),
-      year = date1.getFullYear();
+    const d = date1.getDay(); // 0 = Niedziela, 6 = Sobota
+    const day = date1.getDate();
+    const month = date1.getMonth();
+    const year = date1.getFullYear();
 
-    // Normalizujemy datę do północy dla bezpiecznego porównania
     const currentDate = new Date(year, month, day, 0, 0, 0, 0);
 
-    // Sprawdzenie, czy data jest w zablokowanym zakresie
+    // 1. Sprawdzenie, czy data jest w zablokowanym zakresie świątecznym
     const inRange = currentDate >= rangeStart && currentDate <= rangeEnd;
-
     if (inRange) {
       return true; // Zablokuj ten dzień
     }
 
-    // Zablokuj weekendy (Sobota: 6, Niedziela: 0)
-    return [6, 0].includes(d);
+    // 2. ZAWSZE blokuj niedzielę (d === 0)
+    if (d === 0) {
+      return true;
+    }
+
+    // 3. Blokuj sobotę (d === 6) TYLKO jeśli checkbox "weeknds" jest ODZNACZONY
+    if (!includeWeekends && d === 6) {
+      return true;
+    }
+
+    // Jeśli żaden warunek nie jest spełniony, dzień jest odblokowany
+    return false;
   }
 
   // Ten blok sprawdza cały wybrany zakres (po kliknięciu drugiej daty)
-
-  // Klonujemy datę startową, aby nie modyfikować oryginału
   let tempDate = date1.clone();
 
-  // Pętla musi sprawdzać WŁĄCZNIE z datą końcową (<=)
   while (tempDate.toJSDate() <= date2.toJSDate()) {
-    const d = tempDate.getDay(),
-      day = tempDate.getDate(),
-      month = tempDate.getMonth(),
-      year = tempDate.getFullYear();
+    const d = tempDate.getDay();
+    const day = tempDate.getDate();
+    const month = tempDate.getMonth();
+    const year = tempDate.getFullYear();
 
-    // Normalizujemy datę do północy
     const currentDate = new Date(year, month, day, 0, 0, 0, 0);
 
-    // Sprawdzenie zakresu
+    // 1. Sprawdzenie zakresu świątecznego
     const inRange = currentDate >= rangeStart && currentDate <= rangeEnd;
-
     if (inRange) {
-      return true; // Zablokuj, jeśli data jest w okresie
+      return true; // Zakres zawiera zablokowany dzień
     }
 
-    // Sprawdzenie weekendu
-    let isWeekend = [6, 0].includes(d);
-    if (isWeekend) {
-      return true; // Zablokuj, jeśli w zakresie jest weekend
+    // 2. Sprawdzenie niedzieli
+    if (d === 0) {
+      return true; // Zakres zawiera niedzielę
     }
 
-    // Przejdź do następnego dnia
+    // 3. Sprawdzenie soboty (jeśli weekendy są WYŁĄCZONE)
+    if (!includeWeekends && d === 6) {
+      return true; // Zakres zawiera sobotę, a nie powinien
+    }
+
     tempDate.add(1, "day");
   }
 
