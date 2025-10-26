@@ -135,60 +135,52 @@ $(".o-form_button-submit")
 
 /////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////
-
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- 1. Definicje reguł ---
-
-  // Zakres świąteczny (ZAWSZE blokowany)
-  // Zakres: 24.12.2025 - 04.01.2026
-  const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025 (miesiąc 11)
-  const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026 (miesiąc 0)
+  const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0); // 24 Grudnia 2025
+  const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0); // 4 Stycznia 2026
 
   // --- 2. Wewnętrzna funkcja sprawdzająca pojedynczą datę ---
-  // (To upraszcza sprawdzanie obu przypadków)
-
   function isDayLocked(date) {
-    // Używamy .dateInstance dla pewności, że to natywna data JS
-    const jsDate = date.dateInstance;
-    const d = jsDate.getDay(); // 0 = Niedziela, 6 = Sobota
+    // --- POPRAWKA BŁĘDU ---
+    // Sprawdzamy, czy 'date' to obiekt Litepickera (ma .dateInstance) czy natywna Data
+    // Jeśli ma .dateInstance, użyj go. Jeśli nie, 'date' jest już natywną datą.
+    const jsDate = date.dateInstance ? date.dateInstance : date;
+    // --- KONIEC POPRAWKI ---
 
-    // Normalizujemy datę do północy dla bezpiecznego porównania
+    const d = jsDate.getDay(); // 0 = Niedziela, 6 = Sobota
     const currentDate = new Date(jsDate.getFullYear(), jsDate.getMonth(), jsDate.getDate(), 0, 0, 0, 0);
 
-    // Reguła A: Sprawdź zakres świąteczny (zawsze aktywna)
+    // Reguła A: Sprawdź zakres świąteczny
     if (currentDate >= rangeStart && currentDate <= rangeEnd) {
-      return true; // Zablokuj
+      return true;
     }
 
-    // Reguła B: Zawsze blokuj weekendy (zgodnie z oryginalną logiką tego pliku)
+    // Reguła B: Zawsze blokuj weekendy
     if ([6, 0].includes(d)) {
-      return true; // Zablokuj
+      return true;
     }
 
-    // Jeśli żaden warunek nie jest spełniony, dzień jest odblokowany
     return false;
   }
   // --- Koniec funkcji wewnętrznej ---
 
   // --- 3. Sprawdzenie logiki dla kalendarza ---
-
   if (!date2) {
-    // Użytkownik tylko najechał myszką na jeden dzień
+    // 'date1' jest tutaj NATIVE DATE - nasza nowa funkcja isDayLocked() to obsłuży
     return isDayLocked(date1);
   }
 
-  // Użytkownik wybrał zakres (od date1 do date2)
-  // Musimy sprawdzić każdy dzień w tym zakresie
+  // 'date1' i 'date2' są tutaj LITEPICKER OBJECTS
   let tempDate = date1.clone();
   while (tempDate.toJSDate() <= date2.toJSDate()) {
+    // 'tempDate' jest LITEPICKER OBJECT - nasza nowa funkcja isDayLocked() to obsłuży
     if (isDayLocked(tempDate)) {
-      return true; // Znaleziono zablokowany dzień w zakresie
+      return true;
     }
     tempDate.add(1, "day");
   }
 
-  // Jeśli pętla przeszła, cały zakres jest dostępny
   return false;
 }
 
