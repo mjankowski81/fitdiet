@@ -47,22 +47,29 @@ document.addEventListener("DOMContentLoaded", function () {
     lockDaysFilter: (date1, date2, pickedDates) => {
       // Ta funkcja jest wywoływana przez kalendarz.
       // 'date1' i 'date2' mogą być obiektami Litepickera LUB natywnymi datami.
-      return lockDaysWithRange(date1, date2, pickedDates);
+      // Nasza funkcja 'lockDaysWithRange' (ta z poprawką) to obsłuży.
+      if (defaultDays == 0) {
+        return true;
+      } else {
+        return lockDaysWithRange(date1, date2, pickedDates);
+      }
     },
     setup: (picker) => {
       document.getElementById("days-tmp").value = defaultDays;
       picker.on("preselect", (date1, date2) => {
-        // *** ZAŁOŻENIE: 'date1' to OBIEKT LITEPICKERA ***
+        // *** POPRAWNE ZAŁOŻENIE ***
+        // 'date1' z 'preselect' to jest NATYWNY OBIEKT DATE
+        // (np. 18 Listopada 2025)
         const days = parseInt(document.getElementById("days-tmp").value);
         if (!date2 && date1 && days != 0) {
           calculateRangeInfo(date1, null);
         }
       }),
         picker.on("selected", (date1, date2) => {
-          // 'selected' na pewno zwraca obiekty Litepickera
-          // Zapisujemy je na potrzeby 'updateDays'
-          startRangeDate = date1;
-          endRangeDate = date2;
+          // 'selected' zwraca obiekty Litepickera,
+          // więc musimy zapisać natywne daty z ich wnętrza
+          startRangeDate = date1 ? date1.dateInstance : null;
+          endRangeDate = date2 ? date2.dateInstance : null;
         });
     },
   });
@@ -110,7 +117,7 @@ function updateDays(e) {
     if (val > 0) {
       // Usuwamy minDays/maxDays, aby nie blokowały logiki
       if (startRangeDate) {
-        // 'startRangeDate' to OBIEKT Litepickera zapisany przez 'selected'
+        // 'startRangeDate' to natywna data (zapisana z on 'selected')
         calculateRangeInfo(startRangeDate, null);
       }
       if (!startRangeDate) {
@@ -136,6 +143,11 @@ $(".o-form_button-submit")
 
 /////////////////////////////////////////////////////////////////////
 
+/**
+ * Ta funkcja zawiera OSTATECZNĄ poprawną logikę:
+ * 1. Poprawka na 'toJSDate()' (usuwa literówkę)
+ * 2. Poprawka 'isDayLocked' (rozróżnia sprawdzanie weekendów)
+ */
 function lockDaysWithRange(date1, date2, pickedDates) {
   const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0);
   const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0);
@@ -151,6 +163,7 @@ function lockDaysWithRange(date1, date2, pickedDates) {
     // 2. Natywny obiekt Date (bez `.dateInstance`)
     const jsDate = date.dateInstance ? date.dateInstance : date;
 
+    // Jeśli 'jsDate' jest Nieważną Datą (Invalid Date), zablokuj ją
     if (isNaN(jsDate.getTime())) {
       return true;
     }
@@ -193,6 +206,10 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   // Zakres BĘDZIE zawierał weekendy, więc musimy je ignorować
   // i sprawdzać TYLKO święta.
   let tempDate = date1.clone();
+
+  // --- POPRAWKA LITERÓWKI ---
+  // Było: tempDate.toJSCode()
+  // Jest: tempDate.toJSDate()
   while (tempDate.toJSDate() <= date2.toJSDate()) {
     // Sprawdzamy, czy w zakresie jest jakieś święto
     if (isDayLocked(tempDate, false)) {
@@ -205,22 +222,23 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   return false; // Zakres jest czysty (nie ma świąt).
 }
 
+
 ////////////////////////////////////////////////////////////////////
 
 function calculateRangeSelect(date1, date2) {
-  // 'date1' to OBIEKT LITEPICKERA (z 'preselect')
-  // 'date2' to NATYWNA DATA (obliczona)
+  // Otrzymujemy dwie NATYWNE daty
   if (date1 && date2) {
-    // Zapisujemy 'date1' jako obiekt na potrzeby 'updateDays'
+    // Zapisujemy je na potrzeby 'updateDays'
+    // Musimy zapisać natywne daty, bo 'on("selected")' może się nie uruchomić
     startRangeDate = date1;
     endRangeDate = date2;
 
     window.picker.clearSelection();
     skipRange = true;
 
-    // *** POPRAWKA (POWRÓT DO WERSJI 2) ***
-    // Przekazujemy natywną datę z OBIEKTU 'date1' i natywną datę 'date2'
-    window.picker.setDateRange(date1.dateInstance, date2, false);
+    // *** POPRAWNE WYWOŁANIE ***
+    // Przekazujemy dwie natywne daty. To zadziała.
+    window.picker.setDateRange(date1, date2, false);
 
     skipRange = false;
   }
@@ -229,7 +247,7 @@ function calculateRangeSelect(date1, date2) {
 ////////////////////////////////////////////////////////////////////
 
 function calculateRangeInfo(date1, date2) {
-  // 'date1' to jest OBIEKT LITEPICKERA
+  // 'date1' to jest NATYWNY OBIEKT DATE
   if (skipRange || !date1) {
     return;
   }
@@ -241,9 +259,9 @@ function calculateRangeInfo(date1, date2) {
     return;
   }
 
-  // *** POPRAWKA (POWRÓT DO WERSJI 2) ***
-  // Klonujemy natywną datę z wnętrza obiektu 'date1'
-  let calculatedEndDate = new Date(date1.dateInstance.valueOf());
+  // *** POPRAWNE KLONOWANIE ***
+  // Klonujemy natywną datę 'date1'
+  let calculatedEndDate = new Date(date1.valueOf());
   let validDaysCounted = 0;
 
   while (validDaysCounted < days) {
@@ -262,13 +280,10 @@ function calculateRangeInfo(date1, date2) {
   let endLoopDate = calculatedEndDate;
   let daysCount = days;
 
-  // Przekazujemy Obiekt 'date1' i natywną 'endLoopDate'
+  // Przekazujemy natywną datę 'date1' i obliczoną 'endLoopDate'
   calculateRangeSelect(date1, endLoopDate);
 
-  // Ta część kodu uruchamia się PO 'calculateRangeSelect',
-  // więc pole 'date-info' powinno być już zaktualizowane
   displayInfo = document.getElementById("date-info").value;
-  
   if (!displayInfo) {
     document.getElementById("date").value = displayInfo;
   } else {
