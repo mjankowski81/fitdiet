@@ -16,7 +16,6 @@ document.addEventListener("DOMContentLoaded", function () {
     plugins: ["mobilefriendly"],
     lang: "pl-PL",
     format: "DD.MM.YYYY",
-    // set locked date: 24*60*60*1000*2
     minDate: new Date().getTime() + 259200000,
     startDate: null,
     endDate: null,
@@ -55,14 +54,20 @@ document.addEventListener("DOMContentLoaded", function () {
           picker.clearSelection();
           return false;
         }
-        const weekends = document.getElementById("weeknds").checked;
         const days = parseInt(document.getElementById("days").value);
         if (!date2 && date1 && days != 0) {
-          calculateRangeInfo(date1, date2);
+          // Wywołujemy główną funkcję logiki *tylko* przy pierwszym kliknięciu
+          calculateRangeInfo(date1, null);
         }
       }),
         picker.on("selected", (date1, date2) => {
-          calculateRangeInfo(date1, date2);
+          // Gdy zakres jest ustawiony, musimy zaktualizować `startRangeDate`
+          // aby kolejne zmiany (np. liczby dni) działały poprawnie
+          startRangeDate = date1;
+          endRangeDate = date2;
+
+          // UWAGA: Usunęliśmy stąd wywołanie calculateRangeInfo,
+          // aby uniknąć pętli wywołań (preselect -> setDateRange -> selected -> calculateRangeInfo)
         });
     },
   });
@@ -108,18 +113,15 @@ function updateWeekends(e) {
   const days = parseInt(document.getElementById("days").value);
 
   setTimeout(function () {
-    // To jest kluczowe:
-    // Ta linijka "mówi" kalendarzowi, aby przerysował się,
-    // używając naszej nowej funkcji.
     window.picker.setOptions({
       lockDaysFilter: lockDaysWithRange,
     });
 
     // Przeliczamy zakres, jeśli jest już wybrany
     if (days > 0 && startRangeDate) {
-      calculateRangeInfo(startRangeDate, startRangeDate.dateInstance.addDays(days - 1));
-    } else if (startRangeDate && endRangeDate) {
-      calculateRangeInfo(startRangeDate, endRangeDate);
+      // **POPRAWKA**: Zawsze wywołujemy z `null` jako date2,
+      // aby funkcja `calculateRangeInfo` obliczyła wszystko na nowo.
+      calculateRangeInfo(startRangeDate, null);
     }
   }, 10);
 }
@@ -133,12 +135,20 @@ function updateDays(e) {
     const val = parseInt(e.target.value);
 
     if (val > 0) {
+      // **POPRAWKA**: Usunęliśmy ustawienie `minDays` i `maxDays`.
+      // Będzie ono w konflikcie z logiką pomijania weekendów.
+      // Nasza funkcja `calculateRangeInfo` ręcznie ustawi poprawny zakres.
+      /*
       window.picker.setOptions({
         minDays: val,
         maxDays: val,
       });
+      */
+
       if (startRangeDate) {
-        calculateRangeInfo(startRangeDate, startRangeDate.dateInstance.addDays(days - 1));
+        // **POPRAWKA**: Zawsze wywołujemy z `null` jako date2,
+        // aby funkcja `calculateRangeInfo` obliczyła wszystko na nowo.
+        calculateRangeInfo(startRangeDate, null);
       }
       if (!startRangeDate) {
         window.picker.clearSelection();
@@ -149,7 +159,9 @@ function updateDays(e) {
         maxDays: defaultDays,
       });
     }
-    updateWeekends(e);
+    // Wywołanie updateWeekends(e) nie jest tu potrzebne,
+    // ponieważ `calculateRangeInfo` już uwzględni weekendy.
+    // updateWeekends(e);
   }, 100);
 }
 
@@ -157,13 +169,14 @@ function updateDays(e) {
 
 // Początkowa inicjalizacja - przycisk nieaktywny
 document.querySelector(".o-form_button-submit").disabled = true;
-document.querySelector(".o-form_button-submit").textContent = "Wybierz liczbę dni";
+document.querySelector(".o-form_button-submit").textContent =
+  "Wybierz liczbę dni";
 
 ////////////////////////////////////////////////////////////////////
 
 /**
  * Główna funkcja filtrująca dni w kalendarzu.
- * (Wersja dla pliku Z CHECKBOXEM - poprawiona)
+ * (Ta funkcja była poprawna, bez zmian)
  */
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- 1. Reguła blokowania na 0 dni ---
@@ -179,13 +192,17 @@ function lockDaysWithRange(date1, date2, pickedDates) {
 
   // --- 3. Wewnętrzna funkcja sprawdzająca pojedynczą datę ---
   function isDayLocked(date) {
-    // --- POPRAWKA BŁĘDU ---
-    // Sprawdzamy, czy 'date' to obiekt Litepickera (ma .dateInstance) czy natywna Data
     const jsDate = date.dateInstance ? date.dateInstance : date;
-    // --- KONIEC POPRAWKI ---
-
     const d = jsDate.getDay();
-    const currentDate = new Date(jsDate.getFullYear(), jsDate.getMonth(), jsDate.getDate(), 0, 0, 0, 0);
+    const currentDate = new Date(
+      jsDate.getFullYear(),
+      jsDate.getMonth(),
+      jsDate.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
 
     // Reguła A: Sprawdź zakres świąteczny
     if (currentDate >= rangeStart && currentDate <= rangeEnd) {
@@ -210,7 +227,6 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   // 'date1' i 'date2' są tutaj LITEPICKER OBJECTS
   let tempDate = date1.clone();
   while (tempDate.toJSDate() <= date2.toJSDate()) {
-    // 'tempDate' jest LITEPICKER OBJECT
     if (isDayLocked(tempDate)) {
       return true;
     }
@@ -224,8 +240,10 @@ function lockDaysWithRange(date1, date2, pickedDates) {
 
 function calculateRangeSelect(date1, date2) {
   if (date1 && date2) {
+    // Aktualizujemy globalne zmienne po udanym obliczeniu
     startRangeDate = date1;
     endRangeDate = date2;
+
     window.picker.clearSelection();
     skipRange = true;
     window.picker.setDateRange(date1, date2, false);
@@ -235,60 +253,85 @@ function calculateRangeSelect(date1, date2) {
 
 ////////////////////////////////////////////////////////////////////
 
+/**
+ * Główna funkcja obliczająca zakres (PRZEPISANA)
+ */
 function calculateRangeInfo(date1, date2) {
-  if (skipRange) {
+  // `date2` jest ignorowane, obliczamy je zawsze na nowo
+  // na podstawie `date1` i liczby dni.
+
+  if (skipRange || !date1) {
     return;
   }
+
   let displayInfo = "";
-  let daysCount = 0;
   const weekends = document.getElementById("weeknds").checked;
   const days = parseInt(document.getElementById("days").value);
-  const date1_day = date1.getDate();
-  const date1_month = date1.getMonth();
-  const date1_year = date1.getFullYear();
-  const date1_dow = date1.getDay();
 
-  if (!date2) {
-    date2 = new Date(date1_year, date1_month, date1_day).addDays(days - 1);
+  if (days === 0) {
+    // Jeśli liczba dni to 0, zresetuj przycisk i nic nie rób
+    $(".o-form_button-submit")
+      .prop("disabled", true)
+      .text("Wybierz liczbę dni")
+      .css("background-color", "#ff3b30");
+    return;
   }
 
-  const date2_day = date2.getDate();
-  const date2_month = date2.getMonth();
-  const date2_year = date2.getFullYear();
-  const date2_dow = date2.getDay();
+  // --- NOWA LOGIKA OBLICZANIA DATY KOŃCOWEJ ---
+  // Zaczynamy od daty początkowej i liczymy `days` dni roboczych
+  let calculatedEndDate = new Date(date1.valueOf()); // Klonujemy datę startową
+  let validDaysCounted = 0;
 
-  const startLoopDate = new Date(date1_year, date1_month, date1_day);
-  let endLoopDate = new Date(date2_year, date2_month, date2_day);
+  // Pętla szuka `days` ważnych dni dostawy
+  while (validDaysCounted < days) {
+    let currentDow = calculatedEndDate.getDay();
 
-  for (var d = startLoopDate; d <= endLoopDate; d.setDate(d.getDate() + 1)) {
-    let currentDate = new Date(d);
-    const currentDate_day = currentDate.getDate();
-    const currentDate_month = currentDate.getMonth();
-    const currentDate_year = currentDate.getFullYear();
-    const currentDate_dow = currentDate.getDay();
+    // Sprawdzamy, czy ten dzień jest dniem dostawy
+    // 1. Jeśli "weekendy" są włączone, każdy dzień jest OK
+    // 2. Jeśli "weekendy" są wyłączone, dzień NIE MOŻE być sobotą (6) ani niedzielą (0)
+    let isDeliveryDay = weekends || (currentDow !== 0 && currentDow !== 6);
 
-    if (!weekends && (currentDate_dow == 0 || currentDate_dow == 6)) {
-      if (days > 0) {
-        endLoopDate = endLoopDate.addDays(1);
-      }
-      continue;
+    // Sprawdzamy też, czy dzień nie jest zablokowany (np. święta)
+    // Używamy `lockDaysWithRange` z jednym argumentem (działa jak `isDayLocked`)
+    let isLocked = lockDaysWithRange(calculatedEndDate, null, []);
+
+    if (isDeliveryDay && !isLocked) {
+      validDaysCounted++;
     }
-    daysCount++;
 
-    // Sprawdzanie, czy zostały wybrane obie daty
-    const emptyDays = parseInt(document.getElementById("days").value);
-
-    if (date1 && date2 && emptyDays > 0) {
-      $(".o-form_button-submit").prop("disabled", false).text("Dodaj do koszyka").css("background-color", "#9ecb23");
-    } else if (date1 && !date2) {
-      $(".o-form_button-submit").text("Wybierz dni dostawy").css("background-color", "#ff3b30");
-    } else if (date1 && date2 && emptyDays === 0) {
-      $(".o-form_button-submit").prop("disabled", true).text("Wybierz liczbę dni").css("background-color", "#ff3b30");
-    } else {
-      $(".o-form_button-submit").prop("disabled", true).text("Wybierz liczbę dni").css("background-color", "#ff3b30");
+    // Jeśli jeszcze nie znaleźliśmy wszystkich dni, przechodzimy do następnego dnia
+    if (validDaysCounted < days) {
+      calculatedEndDate.setDate(calculatedEndDate.getDate() + 1);
     }
   }
+  // --- KONIEC NOWEJ LOGIKI ---
 
+  // `calculatedEndDate` to teraz poprawna data końcowa
+  let endLoopDate = calculatedEndDate;
+  let daysCount = days; // Wiemy, że liczba dni jest poprawna
+
+  // Sprawdzanie, czy zostały wybrane obie daty
+  const emptyDays = parseInt(document.getElementById("days").value);
+
+  if (date1 && endLoopDate && emptyDays > 0) {
+    $(".o-form_button-submit")
+      .prop("disabled", false)
+      .text("Dodaj do koszyka")
+      .css("background-color", "#9ecb23");
+  } else if (emptyDays === 0) {
+    $(".o-form_button-submit")
+      .prop("disabled", true)
+      .text("Wybierz liczbę dni")
+      .css("background-color", "#ff3b30");
+  } else {
+    // Obsługuje !date1 (brak wybranej daty)
+    $(".o-form_button-submit")
+      .prop("disabled", true)
+      .text("Wybierz dni dostawy")
+      .css("background-color", "#ff3b30");
+  }
+
+  // Ustawiamy obliczony zakres w kalendarzu
   calculateRangeSelect(date1, endLoopDate);
 
   displayInfo = document.getElementById("date-info").value;
