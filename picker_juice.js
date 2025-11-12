@@ -45,9 +45,6 @@ document.addEventListener("DOMContentLoaded", function () {
       other: "dni",
     },
     lockDaysFilter: (date1, date2, pickedDates) => {
-      // Ta funkcja jest wywoływana przez kalendarz.
-      // 'date1' i 'date2' mogą być obiektami Litepickera LUB natywnymi datami.
-      // Nasza funkcja 'lockDaysWithRange' musi to obsługiwać.
       if (defaultDays == 0) {
         return true;
       } else {
@@ -57,18 +54,14 @@ document.addEventListener("DOMContentLoaded", function () {
     setup: (picker) => {
       document.getElementById("days-tmp").value = defaultDays;
       picker.on("preselect", (date1, date2) => {
-        // *** WAŻNE ***
         // 'date1' z 'preselect' to jest NATYWNY OBIEKT DATE
-        // (np. 19 Listopada 2025)
-        // ***
         const days = parseInt(document.getElementById("days-tmp").value);
         if (!date2 && date1 && days != 0) {
           calculateRangeInfo(date1, null);
         }
       }),
         picker.on("selected", (date1, date2) => {
-          // 'selected' zwraca obiekty Litepickera,
-          // więc musimy zapisać natywne daty z ich wnętrza
+          // 'selected' zwraca obiekty Litepickera
           startRangeDate = date1 ? date1.dateInstance : null;
           endRangeDate = date2 ? date2.dateInstance : null;
         });
@@ -116,10 +109,8 @@ function updateDays(e) {
   setTimeout(function () {
     const val = parseInt(e.target.value);
     if (val > 0) {
-      // Usuwamy minDays/maxDays, aby nie blokowały logiki
       if (startRangeDate) {
-        // 'startRangeDate' to natywna data,
-        // 'calculateRangeInfo' jest na to gotowa
+        // 'startRangeDate' to natywna data
         calculateRangeInfo(startRangeDate, null);
       }
       if (!startRangeDate) {
@@ -150,14 +141,10 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0);
 
   function isDayLocked(date) {
-    // Ta funkcja musi obsługiwać DWA typy danych:
-    // 1. Obiekt Litepickera (z `.dateInstance`)
-    // 2. Natywny obiekt Date (bez `.dateInstance`)
     const jsDate = date.dateInstance ? date.dateInstance : date;
 
-    // Jeśli 'jsDate' jest Nieważną Datą (Invalid Date), zablokuj ją
     if (isNaN(jsDate.getTime())) {
-        return true; 
+      return true;
     }
 
     const d = jsDate.getDay();
@@ -180,15 +167,12 @@ function lockDaysWithRange(date1, date2, pickedDates) {
     return false;
   }
 
-  // Logika dla 'lockDaysFilter'
   if (!date2) {
-    // 'date1' może być natywną datą (z filtra) lub obiektem (z pętli)
     return isDayLocked(date1);
   }
 
-  // 'date1' i 'date2' to obiekty Litepickera
   let tempDate = date1.clone();
-  while (tempDate.toJSDate() <= date2.toJSDate()) {
+  while (tempDate.toJSCode() <= date2.toJSCode()) {
     if (isDayLocked(tempDate)) {
       return true;
     }
@@ -203,15 +187,13 @@ function lockDaysWithRange(date1, date2, pickedDates) {
 function calculateRangeSelect(date1, date2) {
   // Otrzymujemy dwie NATYWNE daty
   if (date1 && date2) {
-    // Zapisujemy je na potrzeby 'updateDays'
     startRangeDate = date1;
     endRangeDate = date2;
 
     window.picker.clearSelection();
     skipRange = true;
 
-    // *** POPRAWKA ***
-    // Przekazujemy dwie natywne daty. To zadziała.
+    // Przekazujemy dwie natywne daty
     window.picker.setDateRange(date1, date2, false);
 
     skipRange = false;
@@ -233,13 +215,11 @@ function calculateRangeInfo(date1, date2) {
     return;
   }
 
-  // --- POPRAWKA (TUTAJ BYŁ BŁĄD 'NaN') ---
   // Klonujemy natywną datę 'date1'
   let calculatedEndDate = new Date(date1.valueOf());
   let validDaysCounted = 0;
 
   while (validDaysCounted < days) {
-    // Przekazujemy natywną datę do 'lockDaysWithRange'
     let isLocked = lockDaysWithRange(calculatedEndDate, null, []);
 
     if (!isLocked) {
@@ -254,7 +234,6 @@ function calculateRangeInfo(date1, date2) {
   let endLoopDate = calculatedEndDate;
   let daysCount = days;
 
-  // Przekazujemy natywną datę 'date1' i obliczoną 'endLoopDate'
   calculateRangeSelect(date1, endLoopDate);
 
   displayInfo = document.getElementById("date-info").value;
