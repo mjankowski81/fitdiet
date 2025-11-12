@@ -140,13 +140,13 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   const rangeStart = new Date(2025, 11, 24, 0, 0, 0, 0);
   const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0);
 
-  function isDayLocked(date) {
-    // Ta funkcja musi obsługiwać DWA typy danych:
-    // 1. Obiekt Litepickera (z `.dateInstance`)
-    // 2. Natywny obiekt Date (bez `.dateInstance`)
+  /**
+   * Wewnętrzna funkcja sprawdzająca z nową logiką.
+   * checkWeekends = true (Sprawdza weekendy I święta)
+   * checkWeekends = false (Sprawdza TYLKO święta)
+   */
+  function isDayLocked(date, checkWeekends = true) {
     const jsDate = date.dateInstance ? date.dateInstance : date;
-
-    // Jeśli 'jsDate' jest Nieważną Datą (Invalid Date), zablokuj ją
     if (isNaN(jsDate.getTime())) {
       return true;
     }
@@ -162,35 +162,41 @@ function lockDaysWithRange(date1, date2, pickedDates) {
       0
     );
 
+    // Reguła A: Zawsze sprawdzaj święta
     if (currentDate >= rangeStart && currentDate <= rangeEnd) {
       return true;
     }
-    if ([6, 0].includes(d)) {
+
+    // Reguła B: Sprawdzaj weekendy tylko, jeśli funkcja o to poprosi
+    if (checkWeekends && [6, 0].includes(d)) {
       return true;
     }
+
     return false;
   }
 
-  // Logika dla 'lockDaysFilter'
+  // --- Logika filtrująca ---
+
   if (!date2) {
-    // 'date1' może być natywną datą (z filtra) lub obiektem (z pętli)
-    return isDayLocked(date1);
+    // 1. Sprawdzanie pojedynczego kliknięcia (gdy użytkownik klika kalendarz)
+    // Musimy tu blokować I weekendy, I święta.
+    return isDayLocked(date1, true); // checkWeekends = true
   }
 
-  // 'date1' i 'date2' to obiekty Litepickera
+  // 2. Sprawdzanie ZAKRESU (gdy 'setDateRange' pyta o pozwolenie)
+  // Zakres BĘDZIE zawierał weekendy, więc musimy je ignorować
+  // i sprawdzać TYLKO święta.
   let tempDate = date1.clone();
-  
-  // --- POPRAWKA LITERÓWKI BYŁA TUTAJ ---
-  // Było: tempDate.toJSCode()
-  // Jest: tempDate.toJSDate()
   while (tempDate.toJSDate() <= date2.toJSDate()) {
-    if (isDayLocked(tempDate)) {
-      return true;
+    // Sprawdzamy, czy w zakresie jest jakieś święto
+    if (isDayLocked(tempDate, false)) {
+      // checkWeekends = false
+      return true; // Tak, w tym zakresie jest święto, zablokuj.
     }
     tempDate.add(1, "day");
   }
 
-  return false;
+  return false; // Zakres jest czysty (nie ma świąt).
 }
 
 ////////////////////////////////////////////////////////////////////
