@@ -199,12 +199,28 @@ function lockDaysWithRange(date1, date2, pickedDates) {
 ////////////////////////////////////////////////////////////////////
 
 function calculateRangeSelect(date1, date2) {
+  // date1 to obiekt Litepickera (z 'preselect')
+  // date2 to natywna data (nasz obliczony 'endLoopDate')
+
   if (date1 && date2) {
+    // Zachowujemy 'date1' jako obiekt Litepickera na potrzeby 'updateDays'
     startRangeDate = date1;
     endRangeDate = date2;
+    
     window.picker.clearSelection();
     skipRange = true;
-    window.picker.setDateRange(date1, date2, false);
+
+    // --- POPRAWKA JEST TUTAJ ---
+    // Mówimy Litepickerowi, aby ustawił zakres, używając
+    // natywnej daty z obiektu 'date1' (.dateInstance)
+    // oraz naszej obliczonej natywnej daty 'date2'.
+
+    // Stara linia (powodująca błąd):
+    // window.picker.setDateRange(date1, date2, false);
+    
+    // Nowa, poprawna linia:
+    window.picker.setDateRange(date1.dateInstance, date2, false);
+    
     skipRange = false;
   }
 }
