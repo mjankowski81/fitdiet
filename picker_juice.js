@@ -141,8 +141,12 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   const rangeEnd = new Date(2026, 0, 4, 0, 0, 0, 0);
 
   function isDayLocked(date) {
+    // Ta funkcja musi obsługiwać DWA typy danych:
+    // 1. Obiekt Litepickera (z `.dateInstance`)
+    // 2. Natywny obiekt Date (bez `.dateInstance`)
     const jsDate = date.dateInstance ? date.dateInstance : date;
 
+    // Jeśli 'jsDate' jest Nieważną Datą (Invalid Date), zablokuj ją
     if (isNaN(jsDate.getTime())) {
       return true;
     }
@@ -167,12 +171,19 @@ function lockDaysWithRange(date1, date2, pickedDates) {
     return false;
   }
 
+  // Logika dla 'lockDaysFilter'
   if (!date2) {
+    // 'date1' może być natywną datą (z filtra) lub obiektem (z pętli)
     return isDayLocked(date1);
   }
 
+  // 'date1' i 'date2' to obiekty Litepickera
   let tempDate = date1.clone();
-  while (tempDate.toJSCode() <= date2.toJSCode()) {
+  
+  // --- POPRAWKA LITERÓWKI BYŁA TUTAJ ---
+  // Było: tempDate.toJSCode()
+  // Jest: tempDate.toJSDate()
+  while (tempDate.toJSDate() <= date2.toJSDate()) {
     if (isDayLocked(tempDate)) {
       return true;
     }
