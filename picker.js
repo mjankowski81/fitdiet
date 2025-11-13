@@ -176,7 +176,7 @@ document.querySelector(".o-form_button-submit").textContent =
 
 /**
  * Główna funkcja filtrująca dni w kalendarzu.
- * (Ta funkcja była poprawna, bez zmian)
+ * (Wersja OSTATECZNA, z logiką rozróżniania sprawdzania)
  */
 function lockDaysWithRange(date1, date2, pickedDates) {
   // --- 1. Reguła blokowania na 0 dni ---
@@ -191,8 +191,16 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   const includeWeekends = document.getElementById("weeknds").checked;
 
   // --- 3. Wewnętrzna funkcja sprawdzająca pojedynczą datę ---
-  function isDayLocked(date) {
+  /**
+   * checkScope = 'all' (Sprawdza wszystko: weekendy I święta)
+   * checkScope = 'holidays' (Sprawdza TYLKO święta)
+   */
+  function isDayLocked(date, checkScope = 'all') {
     const jsDate = date.dateInstance ? date.dateInstance : date;
+    if (isNaN(jsDate.getTime())) {
+      return true;
+    }
+
     const d = jsDate.getDay();
     const currentDate = new Date(
       jsDate.getFullYear(),
@@ -204,13 +212,13 @@ function lockDaysWithRange(date1, date2, pickedDates) {
       0
     );
 
-    // Reguła A: Sprawdź zakres świąteczny
+    // Reguła A: Zawsze sprawdzaj święta (MA PRIORYTET)
     if (currentDate >= rangeStart && currentDate <= rangeEnd) {
       return true;
     }
 
-    // Reguła B: Sprawdź weekendy (zależne od checkboxa)
-    if (!includeWeekends && [6, 0].includes(d)) {
+    // Reguła B: Sprawdzaj weekendy (tylko jeśli nie są świętami)
+    if (checkScope === 'all' && !includeWeekends && [6, 0].includes(d)) {
       return true;
     }
 
@@ -219,21 +227,26 @@ function lockDaysWithRange(date1, date2, pickedDates) {
   // --- Koniec funkcji wewnętrznej ---
 
   // --- 4. Sprawdzenie logiki dla kalendarza ---
+
   if (!date2) {
-    // 'date1' jest tutaj NATIVE DATE
-    return isDayLocked(date1);
+    // 1. Sprawdzanie pojedynczego kliknięcia LUB wywołanie z 'calculateRangeInfo'
+    // Musimy tu blokować WSZYSTKO (weekendy I święta).
+    return isDayLocked(date1, 'all'); // checkScope = 'all'
   }
 
-  // 'date1' i 'date2' są tutaj LITEPICKER OBJECTS
+  // 2. Sprawdzanie ZAKRESU (gdy 'setDateRange' pyta o pozwolenie)
+  // Zakres BĘDZIE zawierał weekendy (jeśli są pomijane), więc musimy je ignorować
+  // i sprawdzać TYLKO święta.
   let tempDate = date1.clone();
   while (tempDate.toJSDate() <= date2.toJSDate()) {
-    if (isDayLocked(tempDate)) {
-      return true;
+    // Sprawdzamy, czy w zakresie jest jakieś święto
+    if (isDayLocked(tempDate, 'holidays')) { // checkScope = 'holidays'
+      return true; // Tak, w tym zakresie jest święto, zablokuj.
     }
     tempDate.add(1, "day");
   }
 
-  return false;
+  return false; // Zakres jest czysty (nie ma świąt).
 }
 
 ////////////////////////////////////////////////////////////////////
