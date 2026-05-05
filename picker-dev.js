@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("days").value = defaultDays;
       picker.on("preselect", (date1, date2) => {
         if (isInvalidStartDate(date1)) {
-          picker.clearSelection();
+          rejectInvalidStartDate(picker);
           return false;
         }
         const days = parseInt(document.getElementById("days").value);
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }),
         picker.on("selected", (date1, date2) => {
           if (isInvalidStartDate(date1)) {
-            picker.clearSelection();
+            rejectInvalidStartDate(picker);
             return false;
           }
           startRangeDate = date1; // Zapisujemy cały obiekt
@@ -248,6 +248,21 @@ function isCountedDeliveryDate(date) {
   }
 
   return true;
+}
+
+function rejectInvalidStartDate(picker) {
+  if (!startRangeDate || !endRangeDate) {
+    picker.clearSelection();
+    document.getElementById("date").value = "";
+    return;
+  }
+
+  setTimeout(function () {
+    skipRange = true;
+    picker.clearSelection();
+    picker.setDateRange(startRangeDate.dateInstance, endRangeDate, false);
+    skipRange = false;
+  }, 10);
 }
 
 ////////////////////////////////////////////////////////////////////
