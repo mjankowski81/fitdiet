@@ -277,7 +277,7 @@ function calculateRangeInfo(date1, date2) {
     document.getElementById("date").value = displayInfo;
   } else {
     displayInfo += ", days: " + daysCount;
-    displayInfo += " (no weekends)";
+    displayInfo += " (no Saturdays)";
     document.getElementById("date").value = displayInfo;
   }
 }
