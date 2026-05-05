@@ -347,9 +347,9 @@ function calculateRangeInfo(date1, date2) {
   } else {
     displayInfo += ", days: " + daysCount;
     if (saturdays) {
-      displayInfo += " (soboty)";
+      displayInfo += " (Saturdays)";
     } else {
-      displayInfo += " (bez sobót)";
+      displayInfo += " (no Saturdays)";
     }
     document.getElementById("date").value = displayInfo;
   }
